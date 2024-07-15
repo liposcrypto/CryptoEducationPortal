@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract CryptoEducationPortal {
+    struct Course {
+        uint256 id;
+        string title;
+        string description;
+        uint256 price; // Price in wei
+        address instructor;
+        bool isPublished;
+    }
+
+    mapping(uint256 => Course) public courses;
+    uint256 public nextCourseId = 1;
+
+    event CourseCreated(uint256 indexed id, string title, address indexed instructor);
+    event CoursePublished(uint256 indexed id);
+    event CourseEnrolled(uint256 indexed id, address indexed student);
+
+    modifier onlyInstructor(uint256 courseId) {
+        require(msg.sender == courses[courseId].instructor, "Only instructor can perform this action");
+        _;
+    }
+
+    constructor() {}
+
+    function createCourse(string memory title, string memory description, uint256 price) external {
+        require(bytes(title).length > 0, "Title cannot be empty");
+        require(price > 0, "Price must be greater than zero");
+
+        courses[nextCourseId] = Course(nextCourseId, title, description, price, msg.sender, false);
+        emit CourseCreated(nextCourseId, title, msg.sender);
+
+        nextCourseId++;
+    }
+
+    function publishCourse(uint256 courseId) external onlyInstructor(courseId) {
+        require(!courses[courseId].isPublished, "Course is already published");
+
+        courses[courseId].isPublished = true;
+        emit CoursePublished(courseId);
+    }
+
+    function enroll(uint256 courseId) external payable {
+        require(courses[courseId].isPublished, "Course is not published");
+        require(msg.value >= courses[courseId].price, "Insufficient funds");
+
+        // Logic for course enrollment goes here (e.g., marking student enrolled, transferring funds)
+        emit CourseEnrolled(courseId, msg.sender);
+    }
+
+    function getCourse(uint256 id) external view returns (
+        string memory title,
+        string memory description,
+        uint256 price,
+        address instructor,
+        bool isPublished
+    ) {
+        Course storage course = courses[id];
+        return (course.title, course.description, course.price, course.instructor, course.isPublished);
+    }
+}
